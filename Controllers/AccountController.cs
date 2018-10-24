@@ -9,6 +9,7 @@ using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using Datadog_MVC_ToDo.Models;
+using System.Net.Http;
 
 namespace Datadog_MVC_ToDo.Controllers
 {
@@ -22,7 +23,7 @@ namespace Datadog_MVC_ToDo.Controllers
         {
         }
 
-        public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager )
+        public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
         {
             UserManager = userManager;
             SignInManager = signInManager;
@@ -34,9 +35,9 @@ namespace Datadog_MVC_ToDo.Controllers
             {
                 return _signInManager ?? HttpContext.GetOwinContext().Get<ApplicationSignInManager>();
             }
-            private set 
-            { 
-                _signInManager = value; 
+            private set
+            {
+                _signInManager = value;
             }
         }
 
@@ -57,6 +58,8 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public ActionResult Login(string returnUrl)
         {
+
+
             ViewBag.ReturnUrl = returnUrl;
             return View();
         }
@@ -65,16 +68,20 @@ namespace Datadog_MVC_ToDo.Controllers
         // POST: /Account/Login
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> Login(LoginViewModel model, string returnUrl)
         {
+
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            // This doesn't count login failures towards account lockout
-            // To enable password failures to trigger account lockout, change to shouldLockout: true
+
+
+            //// This doesn't count login failures towards account lockout
+            //// To enable password failures to trigger account lockout, change to shouldLockout: true
             var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
             switch (result)
             {
@@ -86,9 +93,10 @@ namespace Datadog_MVC_ToDo.Controllers
                     return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
                 case SignInStatus.Failure:
                 default:
-                    ModelState.AddModelError("", "Invalid login attempt.");
-                    return View(model);
+                    throw new System.Web.HttpException(401, "Access denied");
+                    //return View(model);
             }
+
         }
 
         //
@@ -96,6 +104,10 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> VerifyCode(string provider, string returnUrl, bool rememberMe)
         {
+
+
+
+
             // Require that the user has already logged in via username/password or external login
             if (!await SignInManager.HasBeenVerifiedAsync())
             {
@@ -108,19 +120,23 @@ namespace Datadog_MVC_ToDo.Controllers
         // POST: /Account/VerifyCode
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> VerifyCode(VerifyCodeViewModel model)
         {
+
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
+
+
             // The following code protects for brute force attacks against the two factor codes. 
             // If a user enters incorrect codes for a specified amount of time then the user account 
             // will be locked out for a specified amount of time. 
             // You can configure the account lockout settings in IdentityConfig
-            var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent:  model.RememberMe, rememberBrowser: model.RememberBrowser);
+            var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent: model.RememberMe, rememberBrowser: model.RememberBrowser);
             switch (result)
             {
                 case SignInStatus.Success:
@@ -139,6 +155,8 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
+
+
             return View();
         }
 
@@ -146,7 +164,7 @@ namespace Datadog_MVC_ToDo.Controllers
         // POST: /Account/Register
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> Register(RegisterViewModel model)
         {
             if (ModelState.IsValid)
@@ -155,8 +173,8 @@ namespace Datadog_MVC_ToDo.Controllers
                 var result = await UserManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                    await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
-                    
+                    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+
                     // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
                     // Send an email with this link
                     // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
@@ -166,10 +184,14 @@ namespace Datadog_MVC_ToDo.Controllers
                     return RedirectToAction("Index", "Home");
                 }
                 AddErrors(result);
+
+
             }
 
             // If we got this far, something failed, redisplay form
             return View(model);
+
+
         }
 
         //
@@ -177,10 +199,14 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> ConfirmEmail(string userId, string code)
         {
+
+
             if (userId == null || code == null)
             {
                 return View("Error");
             }
+
+
             var result = await UserManager.ConfirmEmailAsync(userId, code);
             return View(result.Succeeded ? "ConfirmEmail" : "Error");
         }
@@ -190,6 +216,8 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public ActionResult ForgotPassword()
         {
+
+
             return View();
         }
 
@@ -197,28 +225,26 @@ namespace Datadog_MVC_ToDo.Controllers
         // POST: /Account/ForgotPassword
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
+
+
             if (ModelState.IsValid)
             {
+
+
                 var user = await UserManager.FindByNameAsync(model.Email);
                 if (user == null || !(await UserManager.IsEmailConfirmedAsync(user.Id)))
                 {
                     // Don't reveal that the user does not exist or is not confirmed
                     return View("ForgotPasswordConfirmation");
                 }
-
-                // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
-                // Send an email with this link
-                // string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
-                // var callbackUrl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);		
-                // await UserManager.SendEmailAsync(user.Id, "Reset Password", "Please reset your password by clicking <a href=\"" + callbackUrl + "\">here</a>");
-                // return RedirectToAction("ForgotPasswordConfirmation", "Account");
             }
 
             // If we got this far, something failed, redisplay form
             return View(model);
+
         }
 
         //
@@ -234,6 +260,7 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public ActionResult ResetPassword(string code)
         {
+
             return code == null ? View("Error") : View();
         }
 
@@ -241,13 +268,18 @@ namespace Datadog_MVC_ToDo.Controllers
         // POST: /Account/ResetPassword
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> ResetPassword(ResetPasswordViewModel model)
         {
+
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
+
+
+
             var user = await UserManager.FindByNameAsync(model.Email);
             if (user == null)
             {
@@ -260,7 +292,10 @@ namespace Datadog_MVC_ToDo.Controllers
                 return RedirectToAction("ResetPasswordConfirmation", "Account");
             }
             AddErrors(result);
+
             return View();
+
+
         }
 
         //
@@ -268,6 +303,8 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public ActionResult ResetPasswordConfirmation()
         {
+
+
             return View();
         }
 
@@ -275,11 +312,14 @@ namespace Datadog_MVC_ToDo.Controllers
         // POST: /Account/ExternalLogin
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public ActionResult ExternalLogin(string provider, string returnUrl)
         {
+
+
             // Request a redirect to the external login provider
             return new ChallengeResult(provider, Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnUrl }));
+
         }
 
         //
@@ -287,6 +327,7 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> SendCode(string returnUrl, bool rememberMe)
         {
+
             var userId = await SignInManager.GetVerifiedUserIdAsync();
             if (userId == null)
             {
@@ -295,19 +336,24 @@ namespace Datadog_MVC_ToDo.Controllers
             var userFactors = await UserManager.GetValidTwoFactorProvidersAsync(userId);
             var factorOptions = userFactors.Select(purpose => new SelectListItem { Text = purpose, Value = purpose }).ToList();
             return View(new SendCodeViewModel { Providers = factorOptions, ReturnUrl = returnUrl, RememberMe = rememberMe });
+
         }
 
         //
         // POST: /Account/SendCode
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> SendCode(SendCodeViewModel model)
         {
+
+
             if (!ModelState.IsValid)
             {
                 return View();
             }
+
+
 
             // Generate the token and send it
             if (!await SignInManager.SendTwoFactorCodeAsync(model.SelectedProvider))
@@ -315,6 +361,8 @@ namespace Datadog_MVC_ToDo.Controllers
                 return View("Error");
             }
             return RedirectToAction("VerifyCode", new { Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe });
+
+
         }
 
         //
@@ -322,7 +370,9 @@ namespace Datadog_MVC_ToDo.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> ExternalLoginCallback(string returnUrl)
         {
+
             var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync();
+
             if (loginInfo == null)
             {
                 return RedirectToAction("Login");
@@ -345,15 +395,19 @@ namespace Datadog_MVC_ToDo.Controllers
                     ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
                     return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
             }
+
+
         }
 
         //
         // POST: /Account/ExternalLoginConfirmation
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
+
         public async Task<ActionResult> ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model, string returnUrl)
         {
+
+
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("Index", "Manage");
@@ -388,7 +442,7 @@ namespace Datadog_MVC_ToDo.Controllers
         //
         // POST: /Account/LogOff
         [HttpPost]
-        [ValidateAntiForgeryToken]
+
         public ActionResult LogOff()
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
@@ -445,11 +499,15 @@ namespace Datadog_MVC_ToDo.Controllers
 
         private ActionResult RedirectToLocal(string returnUrl)
         {
+
+
             if (Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
             return RedirectToAction("Index", "Home");
+
+
         }
 
         internal class ChallengeResult : HttpUnauthorizedResult
